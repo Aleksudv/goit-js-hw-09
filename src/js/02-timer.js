@@ -1,6 +1,19 @@
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.min.css";
-import Notiflix from 'notiflix';
+import flatpickr from 'flatpickr'
+import 'flatpickr/dist/flatpickr.min.css'
+import Notiflix from 'notiflix'
+
+const refs = {
+  input: document.querySelector('#datetime-picker'),
+  startBtn: document.querySelector('[data-start]'),
+  days: document.querySelector('[data-days]'),
+  hours: document.querySelector('[data-hours]'),
+  minutes: document.querySelector('[data-minutes]'),
+  seconds: document.querySelector('[data-seconds]'),
+}
+
+refs.startBtn.disabled = true
+
+let timeoutID = null
 
 const options = {
   enableTime: true,
@@ -8,65 +21,62 @@ const options = {
   defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-      const selectedDatesUnix = selectedDates[0].getTime();
-      let id = null;
-
-      if (Date.now() > selectedDatesUnix) {
-          Notiflix.Notify.failure('Please choose a date in the future');
-
-          buttonStartTimer.disable = true;
-          return;
-      } else {
-          buttonStartTimer.disable = false;
+    if (selectedDates[0] <= options.defaultDate) {
+      Notiflix.Notify.failure('Please choose a date in the future')
+      refs.startBtn.disabled = true
+    }
+    if (selectedDates[0] >= options.defaultDate) {
+      {
+        refs.startBtn.disabled = false
       }
+    }
   },
-};
+}
 
-const inputDataEl = document.querySelector('#datetime-picker');
-flatpickr(inputDataEl, options);
-const buttonStartTimer = document.querySelector('button[data-start]');
-buttonStartTimer.addEventListener('click', () => {
-    const timer = {
-        timerDeadline: new Date(inputDataEl.value),
-        intervalId: null,
-        rootSelector: document.querySelector('.timer'),
+const calendar = flatpickr(refs.input, options)
 
-            start() {
-        this.intervalId = setInterval(() => {
-            const ms = this.timerDeadline - Date.now();
+refs.startBtn.addEventListener('click', onStartBtnClick)
 
-            if (ms <= 0) {
-                this.stop();
+function onStartBtnClick() {
+  timeoutID = setInterval(() => {
+    updateTime()
+  }, 1000)
+  refs.input.disabled = true
+  refs.startBtn.disabled = true
+}
 
-                return; 
-            }
+function convertMs(ms) {
+  // Number of milliseconds per unit of time
+  const second = 1000
+  const minute = second * 60
+  const hour = minute * 60
+  const day = hour * 24
 
-            const { days, hours, minutes, seconds } = this.convertMs(ms);
+  // Remaining days
+  const days = Math.floor(ms / day)
+  // Remaining hours
+  const hours = Math.floor((ms % day) / hour)
+  // Remaining minutes
+  const minutes = Math.floor(((ms % day) % hour) / minute)
+  // Remaining seconds
+  const seconds = Math.floor((((ms % day) % hour) % minute) / second)
 
-            this.rootSelector.querySelector('.js-timer__days').textContent = this.addLeadingZero(days);
-            this.rootSelector.querySelector('.js-timer__hours').textContent = this.addLeadingZero(hours);
-            this.rootSelector.querySelector('.js-timer__minutes').textContent = this.addLeadingZero(minutes);
-            this.rootSelector.querySelector('.js-timer__seconds').textContent = this.addLeadingZero(seconds);
-        }, 1000);
-        },
-        
-        stop() {
-        clearInterval(this.intervalId);
-        },
-        
-        convertMs(ms) {
+  return { days, hours, minutes, seconds }
+}
 
-            const days = Math.floor(ms / 1000 / 60 / 60 / 24);
-            const hours = Math.floor(ms / 1000 / 60 / 60) % 24;
-            const minutes = Math.floor(ms / 1000 / 60) % 60; 
-            const seconds = Math.floor(ms / 1000) % 60;
-            
-            return { days, hours, minutes, seconds };
-        },        
-        addLeadingZero(value) {
-        return String(value).padStart(2, 0);
-    },
-};
+function updateTime() {
+  const currentTime = new Date()
+  const selectedTime = new Date(refs.input.value)
 
-timer.start();
-})
+  const deltaTime = selectedTime - currentTime
+
+  if (deltaTime < 0) {
+    return
+  } else {
+    const { days, hours, minutes, seconds } = convertMs(deltaTime)
+    refs.days.textContent = `${days}`
+    refs.hours.textContent = `${hours}`
+    refs.minutes.textContent = `${minutes}`
+    refs.seconds.textContent = `${seconds}`
+  }
+}

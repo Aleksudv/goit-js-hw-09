@@ -1,9 +1,8 @@
 import Notiflix from 'notiflix';
+
+
 const formEl = document.querySelector('.form');
 
-console.log(formEl);
-const createBtn = document.querySelector('button');
-let finalDelay = formEl.delay.value;
 
 function createPromise(position, delay) {
   const shouldResolve = Math.random() > 0.3;
